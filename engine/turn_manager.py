@@ -9,14 +9,14 @@ from typing import Dict, List, Optional, Any
 import logging
 from enum import Enum
 
-from ..models.negotiation import (
+from models.negotiation import (
     NegotiationState,
     NegotiationTurn,
     NegotiationOffer,
     TurnType,
     NegotiationStatus
 )
-from ..models.agent import AgentConfig
+from models.agent import AgentConfig
 
 logger = logging.getLogger(__name__)
 

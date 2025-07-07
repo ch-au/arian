@@ -9,7 +9,7 @@ from pathlib import Path
 import csv
 import logging
 
-from ..models.tactics import TacticLibrary, NegotiationTactic, TacticAspect, TacticType
+from models.tactics import TacticLibrary, NegotiationTactic, TacticAspect, TacticType
 
 
 logger = logging.getLogger(__name__)

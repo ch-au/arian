@@ -145,6 +145,43 @@ class NegotiationTactic(BaseModel):
             return "Low Risk - Safe to use"
         else:
             return "Very Low Risk - Minimal chance of negative consequences"
+    
+    def calculate_personality_compatibility(self, personality_profile) -> float:
+        """
+        Calculate compatibility score between this tactic and a personality profile.
+        
+        Args:
+            personality_profile: PersonalityProfile object with Big 5 traits
+            
+        Returns:
+            Compatibility score (0-1, where 1 is perfect match)
+        """
+        if not self.personality_affinity:
+            return 0.5  # Neutral compatibility if no affinity defined
+            
+        compatibility_scores = []
+        
+        # Get personality traits as dict
+        personality_traits = {
+            'openness': personality_profile.openness,
+            'conscientiousness': personality_profile.conscientiousness,
+            'extraversion': personality_profile.extraversion,
+            'agreeableness': personality_profile.agreeableness,
+            'neuroticism': personality_profile.neuroticism
+        }
+        
+        for trait, agent_score in personality_traits.items():
+            if trait in self.personality_affinity:
+                tactic_preference = self.personality_affinity[trait]
+                # Calculate how well the agent's trait level matches the tactic's preference
+                compatibility = 1.0 - abs(agent_score - tactic_preference)
+                compatibility_scores.append(compatibility)
+        
+        if not compatibility_scores:
+            return 0.5  # Neutral if no matching traits
+            
+        # Return average compatibility
+        return sum(compatibility_scores) / len(compatibility_scores)
 
 
 class TacticLibrary(BaseModel):
@@ -228,6 +265,28 @@ class TacticLibrary(BaseModel):
         # Sort by effectiveness (descending)
         recommended.sort(key=lambda x: x[1], reverse=True)
         return [tactic for tactic, _ in recommended]
+    
+    def get_compatible_tactics(self, personality_profile, threshold: float = 0.5) -> List[NegotiationTactic]:
+        """
+        Get tactics that are compatible with a personality profile.
+        
+        Args:
+            personality_profile: PersonalityProfile object with Big 5 traits
+            threshold: Minimum compatibility threshold (0-1)
+            
+        Returns:
+            List of compatible tactics sorted by compatibility score
+        """
+        compatible = []
+        
+        for tactic in self.tactics:
+            compatibility = tactic.calculate_personality_compatibility(personality_profile)
+            if compatibility > threshold:
+                compatible.append((tactic, compatibility))
+        
+        # Sort by compatibility (descending)
+        compatible.sort(key=lambda x: x[1], reverse=True)
+        return [tactic for tactic, _ in compatible]
     
     def get_tactics_summary(self) -> Dict[str, Any]:
         """Get a summary of the tactic library."""

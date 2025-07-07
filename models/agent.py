@@ -253,9 +253,12 @@ class AgentConfig(BaseModel):
             "id": self.id,
             "name": self.name,
             "personality_style": self.personality.get_negotiation_style_description(),
+            "personality_summary": self.personality.get_summary(),
             "power_level": self.power_level.get_power_description(),
+            "power_category": self.power_level.get_category(),
             "tactics_count": len(self.selected_tactics),
             "configured_dimensions": list(self.zopa_boundaries.keys()),
+            "zopa_dimensions": len(self.zopa_boundaries),
             "created_at": self.created_at.isoformat()
         }
     

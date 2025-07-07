@@ -134,8 +134,31 @@ class ZOPAOverlap(BaseModel):
     
     def __init__(self, **data):
         """Initialize and calculate overlap metrics."""
+        # Auto-calculate required fields if not provided
+        if 'has_overlap' not in data:
+            data['has_overlap'] = self._calculate_has_overlap(data.get('agent1_boundary'), data.get('agent2_boundary'))
+        if 'overlap_min' not in data:
+            data['overlap_min'] = 0.0
+        if 'overlap_max' not in data:
+            data['overlap_max'] = 0.0
+        if 'overlap_size' not in data:
+            data['overlap_size'] = 0.0
+        if 'mutual_satisfaction_score' not in data:
+            data['mutual_satisfaction_score'] = 0.0
+        if 'optimal_value' not in data:
+            data['optimal_value'] = None
+        
         super().__init__(**data)
         self._calculate_overlap()
+    
+    def _calculate_has_overlap(self, boundary1, boundary2) -> bool:
+        """Calculate if there's overlap between two boundaries."""
+        if not boundary1 or not boundary2:
+            return False
+        
+        # Check if ranges overlap
+        return not (boundary1.max_desired < boundary2.min_acceptable or 
+                   boundary2.max_desired < boundary1.min_acceptable)
     
     def _calculate_overlap(self) -> None:
         """Calculate overlap metrics between the two boundaries."""

@@ -7,9 +7,9 @@ This module provides validation functions for agent configurations and negotiati
 from typing import List, Dict, Any, Optional, Tuple
 import logging
 
-from ..models.agent import AgentConfig
-from ..models.negotiation import NegotiationDimension, DimensionType
-from ..models.tactics import TacticLibrary
+from models.agent import AgentConfig
+from models.negotiation import NegotiationDimension, DimensionType
+from models.tactics import TacticLibrary
 
 logger = logging.getLogger(__name__)
 

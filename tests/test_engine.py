@@ -61,8 +61,7 @@ class TestNegotiationEngine:
         with pytest.raises(ValueError, match="Invalid negotiation setup"):
             engine.create_negotiation(sample_agent_1, invalid_agent, max_rounds=10)
     
-    @pytest.mark.asyncio
-    async def test_run_negotiation_simple(self, config_manager, sample_agent_1, sample_agent_2, sample_negotiation):
+    def test_run_negotiation_simple(self, config_manager, sample_agent_1, sample_agent_2, sample_negotiation):
         """Test running a simple negotiation."""
         engine = NegotiationEngine(config_manager)
         
@@ -82,9 +81,10 @@ class TestNegotiationEngine:
         # Limit to 2 rounds to avoid infinite loop
         sample_negotiation.max_rounds = 2
         
-        result = await engine.run_negotiation(
+        # Run the async method synchronously
+        result = asyncio.run(engine.run_negotiation(
             sample_negotiation, sample_agent_1, sample_agent_2, mock_agent_callback
-        )
+        ))
         
         assert result is not None
         assert result.total_turns > 0
@@ -94,8 +94,7 @@ class TestNegotiationEngine:
             NegotiationStatus.FAILED_NO_AGREEMENT
         ]
     
-    @pytest.mark.asyncio
-    async def test_run_negotiation_with_agreement(self, config_manager, sample_agent_1, sample_agent_2, sample_negotiation):
+    def test_run_negotiation_with_agreement(self, config_manager, sample_agent_1, sample_agent_2, sample_negotiation):
         """Test negotiation that reaches agreement."""
         engine = NegotiationEngine(config_manager)
         
@@ -117,9 +116,10 @@ class TestNegotiationEngine:
                 confidence=0.8
             )
         
-        result = await engine.run_negotiation(
+        # Run the async method synchronously
+        result = asyncio.run(engine.run_negotiation(
             sample_negotiation, sample_agent_1, sample_agent_2, mock_agent_callback
-        )
+        ))
         
         assert result.agreement_reached
         assert result.status == NegotiationStatus.AGREEMENT_REACHED

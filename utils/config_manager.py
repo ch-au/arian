@@ -10,9 +10,9 @@ import json
 import logging
 from datetime import datetime
 
-from ..models.agent import AgentConfig
-from ..models.tactics import TacticLibrary
-from ..models.negotiation import NegotiationState
+from models.agent import AgentConfig
+from models.tactics import TacticLibrary
+from models.negotiation import NegotiationState
 
 logger = logging.getLogger(__name__)
 
@@ -365,7 +365,9 @@ class ConfigManager:
             with open(import_path, 'r', encoding='utf-8') as file:
                 data = json.load(file)
             
-            # Create new agent config (this will generate a new ID)
+            # Create new agent config with a new ID
+            if 'id' in data:
+                del data['id']  # Remove existing ID to trigger generation of a new UUID
             agent_config = AgentConfig(**data)
             
             # Save the imported configuration

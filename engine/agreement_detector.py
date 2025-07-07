@@ -8,13 +8,13 @@ the quality and characteristics of those agreements.
 from typing import Dict, List, Optional, Any, Tuple
 import logging
 
-from ..models.negotiation import (
+from models.negotiation import (
     NegotiationState,
     NegotiationOffer,
-    NegotiationResult,
+    NegotiationDimension,
     NegotiationStatus
 )
-from ..models.zopa import ZOPAAnalysis
+from models.zopa import ZOPAAnalysis
 
 logger = logging.getLogger(__name__)
 

@@ -35,8 +35,21 @@ try:
     from agents_openai.agent_factory import AgentFactory
     from agents_openai.negotiation_runner import NegotiationRunner
     OPENAI_AGENTS_AVAILABLE = True
-except ImportError:
+    IMPORT_ERROR = None
+except ImportError as e:
     OPENAI_AGENTS_AVAILABLE = False
+    IMPORT_ERROR = str(e)
+    # Create fallback classes for interface to work
+    class AgentFactory:
+        def __init__(self): pass
+        def create_buyer_agent(self, **kwargs): return None
+        def create_seller_agent(self, **kwargs): return None
+        def create_negotiation_agent(self, **kwargs): return None
+    
+    class NegotiationRunner:
+        def __init__(self, factory): pass
+        async def run_negotiation(self, **kwargs): return None
+        def get_negotiation_summary(self): return None
 
 
 # Page configuration
@@ -308,14 +321,18 @@ def create_zopa_configuration(agent_name: str, context: NegotiationContext, defa
     
     with col2:
         st.write("**Price ($/unit)**")
+        # Calculate safe defaults to avoid validation errors
+        default_price_min = max(0.01, defaults.get('price', {}).get('min_acceptable', context.baseline_price * 0.8))
+        default_price_max = max(default_price_min + 0.01, defaults.get('price', {}).get('max_desired', context.baseline_price * 1.5))
+        
         price_min = st.number_input(
             f"Min Acceptable Price",
-            min_value=0.01, value=defaults.get('price', {}).get('min_acceptable', context.baseline_price * 0.8), format="%.2f",
+            min_value=0.01, value=default_price_min, format="%.2f",
             key=f"{agent_name}_price_min"
         )
         price_max = st.number_input(
             f"Max Desired Price",
-            min_value=price_min, value=defaults.get('price', {}).get('max_desired', context.baseline_price * 1.5), format="%.2f",
+            min_value=max(0.02, price_min + 0.01), value=max(price_min + 0.01, default_price_max), format="%.2f",
             key=f"{agent_name}_price_max"
         )
         zopa_boundaries['price'] = {'min_acceptable': price_min, 'max_desired': price_max}
@@ -730,6 +747,25 @@ def main():
         if st.button("🚀 Start Negotiation", type="primary"):
             if not OPENAI_AGENTS_AVAILABLE:
                 st.error("❌ OpenAI agents framework not available. Please check your installation.")
+                
+                # Show detailed error information
+                with st.expander("🔧 Installation Instructions"):
+                    st.write("**The OpenAI agents framework is required to run negotiations.**")
+                    st.write("")
+                    st.write("**Error Details:**")
+                    st.code(f"ImportError: {IMPORT_ERROR}")
+                    st.write("")
+                    st.write("**To fix this issue:**")
+                    st.write("1. Install the OpenAI agents framework:")
+                    st.code("pip install openai-agents")
+                    st.write("2. If that doesn't work, try installing from GitHub:")
+                    st.code("pip install git+https://github.com/openai/openai-agents-python.git")
+                    st.write("3. Restart the Streamlit application")
+                    st.write("")
+                    st.write("**Alternative: Use the basic negotiation engine**")
+                    st.write("You can still test the system logic using the basic negotiation engine in the demo files.")
+                    st.code("python demo.py")
+                
                 return
                 
             st.info("🤖 Starting AI negotiation... This may take a few minutes.")

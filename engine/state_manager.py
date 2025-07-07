@@ -11,8 +11,8 @@ import json
 from pathlib import Path
 from datetime import datetime
 
-from ..models.negotiation import NegotiationState, NegotiationStatus
-from ..utils.config_manager import ConfigManager
+from models.negotiation import NegotiationState, NegotiationStatus
+from utils.config_manager import ConfigManager
 
 logger = logging.getLogger(__name__)
 

@@ -18,6 +18,11 @@ from pydantic import BaseModel
 from models.agent import AgentConfig, PersonalityProfile, PowerLevel
 from models.negotiation import NegotiationOffer, NegotiationState, NegotiationDimension
 from models.tactics import NegotiationTactic
+try:
+    from utils.prompt_template_manager import PromptTemplateManager
+except ImportError:
+    # Fallback to simple prompt manager if YAML is not available
+    from utils.simple_prompt_manager import SimplePromptManager as PromptTemplateManager
 
 
 class NegotiationOfferOutput(BaseModel):
@@ -36,16 +41,35 @@ class NegotiationAgent:
     A negotiation agent that uses OpenAI Agents framework with our custom configuration.
     """
     
-    def __init__(self, agent_config: AgentConfig, negotiation_state: NegotiationState):
+    def __init__(
+        self, 
+        agent_config: AgentConfig, 
+        negotiation_state: NegotiationState,
+        template_path: Optional[str] = None,
+        scenario: Optional[str] = None,
+        industry: Optional[str] = None,
+        cultural_style: Optional[str] = None
+    ):
         """
         Initialize the negotiation agent.
         
         Args:
             agent_config: Our custom agent configuration
             negotiation_state: Current negotiation state
+            template_path: Optional path to custom YAML template
+            scenario: Optional scenario name (e.g., 'aggressive_buyer')
+            industry: Optional industry context (e.g., 'technology')
+            cultural_style: Optional cultural communication style
         """
         self.agent_config = agent_config
         self.negotiation_state = negotiation_state
+        self.scenario = scenario
+        self.industry = industry
+        self.cultural_style = cultural_style
+        
+        # Initialize the prompt template manager
+        self.prompt_manager = PromptTemplateManager(template_path)
+        
         self.openai_agent = self._create_openai_agent()
     
     def _create_openai_agent(self) -> Agent:
@@ -65,132 +89,15 @@ class NegotiationAgent:
         return agent
     
     def _generate_instructions(self) -> str:
-        """Generate detailed instructions based on agent configuration."""
-        
-        # Base instructions
-        instructions = f"""You are {self.agent_config.name}, a professional negotiator.
-
-ROLE: {self.agent_config.description}
-
-PERSONALITY PROFILE:
-{self._format_personality_instructions()}
-
-POWER LEVEL: {self.agent_config.power_level.get_category()} ({self.agent_config.power_level.description})
-Power Sources: {', '.join(self.agent_config.power_level.sources)}
-
-NEGOTIATION TACTICS:
-{self._format_tactics_instructions()}
-
-ZOPA BOUNDARIES (Your acceptable ranges):
-{self._format_zopa_instructions()}
-
-CURRENT NEGOTIATION STATUS:
-{self._format_negotiation_status()}
-
-INSTRUCTIONS:
-1. Always make offers within your ZOPA boundaries
-2. Apply your selected negotiation tactics in your communication style
-3. Consider your personality traits when crafting responses
-4. Use your power level to determine how assertive or flexible to be
-5. Aim for win-win solutions while protecting your interests
-6. Provide clear reasoning for your offers
-7. Be professional but let your personality show through
-
-RESPONSE FORMAT:
-- volume: Number of units (integer)
-- price: Price per unit (float)
-- payment_terms: Payment period in days (integer)
-- contract_duration: Contract length in months (integer)
-- message: Your negotiation message (string)
-- confidence: Your confidence in this offer 0.0-1.0 (float)
-- reasoning: Why you made this offer (string)
-"""
-        
-        return instructions
+        """Generate detailed instructions using the YAML template."""
+        return self.prompt_manager.generate_prompt(
+            agent_config=self.agent_config,
+            negotiation_state=self.negotiation_state,
+            scenario=self.scenario,
+            industry=self.industry,
+            cultural_style=self.cultural_style
+        )
     
-    def _format_personality_instructions(self) -> str:
-        """Format personality traits into instructions."""
-        personality = self.agent_config.personality
-        
-        traits = []
-        if personality.openness >= 0.7:
-            traits.append("- Be creative and open to innovative solutions")
-        elif personality.openness <= 0.3:
-            traits.append("- Prefer traditional, proven approaches")
-        
-        if personality.conscientiousness >= 0.7:
-            traits.append("- Be detail-oriented and systematic in your approach")
-        elif personality.conscientiousness <= 0.3:
-            traits.append("- Be flexible and adaptable to changing circumstances")
-        
-        if personality.extraversion >= 0.7:
-            traits.append("- Be confident, assertive, and direct in communication")
-        elif personality.extraversion <= 0.3:
-            traits.append("- Be thoughtful, reserved, and measured in responses")
-        
-        if personality.agreeableness >= 0.7:
-            traits.append("- Emphasize collaboration and mutual benefits")
-        elif personality.agreeableness <= 0.3:
-            traits.append("- Be competitive and focus on your own interests")
-        
-        if personality.neuroticism >= 0.7:
-            traits.append("- Be cautious and risk-averse in your offers")
-        elif personality.neuroticism <= 0.3:
-            traits.append("- Be calm and confident under pressure")
-        
-        return "\n".join(traits) if traits else "- Maintain a balanced approach"
-    
-    def _format_tactics_instructions(self) -> str:
-        """Format selected tactics into instructions."""
-        if not self.agent_config.selected_tactics:
-            return "- Use standard negotiation approaches"
-        
-        # In a real implementation, you would load the actual tactics
-        # For now, we'll use the tactic names as guidance
-        tactics_guidance = []
-        for tactic_id in self.agent_config.selected_tactics:
-            if "collaborative" in tactic_id.lower():
-                tactics_guidance.append("- Use collaborative language and seek mutual benefits")
-            elif "anchoring" in tactic_id.lower():
-                tactics_guidance.append("- Make strong opening offers to anchor expectations")
-            elif "rapport" in tactic_id.lower():
-                tactics_guidance.append("- Build personal connection and establish trust")
-            elif "competitive" in tactic_id.lower():
-                tactics_guidance.append("- Highlight your strong position and alternatives")
-        
-        return "\n".join(tactics_guidance) if tactics_guidance else "- Apply your selected tactics strategically"
-    
-    def _format_zopa_instructions(self) -> str:
-        """Format ZOPA boundaries into instructions."""
-        zopa_text = []
-        for dimension, boundaries in self.agent_config.zopa_boundaries.items():
-            min_val = boundaries['min_acceptable']
-            max_val = boundaries['max_desired']
-            zopa_text.append(f"- {dimension.replace('_', ' ').title()}: {min_val} to {max_val}")
-        
-        return "\n".join(zopa_text)
-    
-    def _format_negotiation_status(self) -> str:
-        """Format current negotiation status."""
-        status_text = [
-            f"- Round: {self.negotiation_state.current_round}/{self.negotiation_state.max_rounds}",
-            f"- Total turns taken: {len(self.negotiation_state.turns)}",
-            f"- Total offers made: {len(self.negotiation_state.offers)}"
-        ]
-        
-        # Add information about the other agent's latest offer
-        other_agent_id = (self.negotiation_state.agent2_id 
-                         if self.agent_config.id == self.negotiation_state.agent1_id 
-                         else self.negotiation_state.agent1_id)
-        
-        latest_other_offer = self.negotiation_state.get_latest_offer_by_agent(other_agent_id)
-        if latest_other_offer:
-            status_text.append(f"- Other party's latest offer: {latest_other_offer.volume} units at ${latest_other_offer.price}/unit, {latest_other_offer.payment_terms} days payment, {latest_other_offer.contract_duration} months")
-            status_text.append(f"- Their message: '{latest_other_offer.message}'")
-        else:
-            status_text.append("- No offers from other party yet")
-        
-        return "\n".join(status_text)
     
     def _create_negotiation_tools(self):
         """Create tools for the negotiation agent."""

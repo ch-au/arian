@@ -24,7 +24,11 @@ class AgentFactory:
     def create_negotiation_agent(
         self, 
         agent_config: AgentConfig, 
-        negotiation_state: NegotiationState
+        negotiation_state: NegotiationState,
+        template_path: Optional[str] = None,
+        scenario: Optional[str] = None,
+        industry: Optional[str] = None,
+        cultural_style: Optional[str] = None
     ) -> NegotiationAgent:
         """
         Create a negotiation agent with OpenAI Agents integration.
@@ -32,11 +36,22 @@ class AgentFactory:
         Args:
             agent_config: Agent configuration with personality, tactics, etc.
             negotiation_state: Current negotiation state
+            template_path: Optional path to custom YAML template
+            scenario: Optional scenario name (e.g., 'aggressive_buyer')
+            industry: Optional industry context (e.g., 'technology')
+            cultural_style: Optional cultural communication style
             
         Returns:
             Configured negotiation agent
         """
-        return NegotiationAgent(agent_config, negotiation_state)
+        return NegotiationAgent(
+            agent_config=agent_config,
+            negotiation_state=negotiation_state,
+            template_path=template_path,
+            scenario=scenario,
+            industry=industry,
+            cultural_style=cultural_style
+        )
     
     def create_buyer_agent(
         self,

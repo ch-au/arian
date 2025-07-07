@@ -8,12 +8,12 @@ ensuring negotiations stay within acceptable ranges.
 from typing import Dict, List, Optional, Any, Tuple
 import logging
 
-from ..models.negotiation import (
+from models.negotiation import (
     NegotiationOffer,
     NegotiationDimension,
     NegotiationState
 )
-from ..models.zopa import ZOPAAnalysis, ZOPAOverlap, ZOPABoundary
+from models.zopa import ZOPAAnalysis, ZOPAOverlap, ZOPABoundary
 
 logger = logging.getLogger(__name__)
 
